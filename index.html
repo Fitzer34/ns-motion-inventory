@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NS Motion Inventory</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- QR generator -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <!-- QR scanner (camera) -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.10/html5-qrcode.min.js"></script>
+</head>
+<body>
+  <!-- LOGIN -->
+  <div id="loginScreen" class="screen">
+    <div class="card">
+      <div class="brand">
+        <div class="logo">NS</div>
+        <div>
+          <div class="title">NS Motion Inventory</div>
+          <div class="muted">Login required</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <label>PIN</label>
+        <input id="pinInput" type="password" inputmode="numeric" placeholder="Enter PIN" />
+      </div>
+
+      <div class="row">
+        <button class="btn primary" id="loginBtn">Login</button>
+      </div>
+
+      <div class="hint muted">
+        Default PIN is <b>1234</b>. After login go to Settings to change it.
+      </div>
+    </div>
+  </div>
+
+  <!-- APP -->
+  <div id="appScreen" class="screen hidden">
+    <header class="topbar">
+      <div class="left">
+        <div class="brandSmall">
+          <div class="logo small">NS</div>
+          <div>
+            <div class="titleSmall">Inventory</div>
+            <div class="muted small">Sortly-inspired</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="right">
+        <input id="searchInput" class="search" placeholder="Search items, SKU, aisle..." />
+        <select id="categoryFilter" class="select"></select>
+        <button class="btn" id="openScannerBtn">Scan QR</button>
+        <button class="btn primary" id="openAddBtn">+ Add Item</button>
+        <button class="btn" id="openSettingsBtn">Settings</button>
+        <button class="btn danger" id="logoutBtn">Logout</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel">
+        <div class="kpis">
+          <div class="kpi">
+            <div class="muted">Total items</div>
+            <div id="kpiTotal" class="kpiVal">0</div>
+          </div>
+          <div class="kpi">
+            <div class="muted">Low stock</div>
+            <div id="kpiLow" class="kpiVal">0</div>
+          </div>
+          <div class="kpi">
+            <div class="muted">Categories</div>
+            <div id="kpiCats" class="kpiVal">0</div>
+          </div>
+          <div class="kpi">
+            <div class="muted">Locations</div>
+            <div id="kpiLocs" class="kpiVal">0</div>
+          </div>
+        </div>
+
+        <div class="tableWrap">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Photo</th>
+                <th>Item</th>
+                <th>Category</th>
+                <th>SKU</th>
+                <th class="center">Qty</th>
+                <th class="center">Low</th>
+                <th>Aisle</th>
+                <th>Placement</th>
+                <th class="center">QR</th>
+                <th class="right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="itemsTbody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="drawer" id="drawer">
+        <div class="drawerHead">
+          <div>
+            <div id="drawerTitle" class="drawerTitle">Select an item</div>
+            <div id="drawerSub" class="muted">Details + QR + stock update</div>
+          </div>
+          <button class="iconBtn" id="closeDrawerBtn">✕</button>
+        </div>
+
+        <div class="photoBox">
+          <img id="drawerPhoto" alt="photo" />
+          <div id="drawerPhotoEmpty" class="photoEmpty">No photo</div>
+        </div>
+
+        <div class="formGrid">
+          <div class="field"><label>Name</label><input id="fName" /></div>
+          <div class="field"><label>SKU</label><input id="fSku" /></div>
+          <div class="field"><label>Category</label><input id="fCategory" list="catList" /></div>
+          <datalist id="catList"></datalist>
+
+          <div class="field"><label>Qty</label><input id="fQty" type="number" /></div>
+          <div class="field"><label>Low warn</label><input id="fLow" type="number" /></div>
+
+          <div class="field"><label>Aisle</label><input id="fAisle" /></div>
+          <div class="field"><label>Placement</label><input id="fPlacement" /></div>
+
+          <div class="field full"><label>Notes</label><textarea id="fNotes" rows="3"></textarea></div>
+
+          <div class="field full">
+            <label>Photo</label>
+            <input id="fPhoto" type="file" accept="image/*" />
+            <div class="muted small">Photo is saved in your browser storage (works on each device separately).</div>
+          </div>
+        </div>
+
+        <div class="drawerBtns">
+          <button class="btn primary" id="saveBtn">Save</button>
+          <button class="btn" id="qrBtn">Show QR</button>
+          <button class="btn danger" id="deleteBtn">Delete</button>
+        </div>
+
+        <div class="qrArea hidden" id="qrArea">
+          <div class="qrRow">
+            <div class="muted">Scan this QR</div>
+            <button class="iconBtn" id="closeQrBtn">✕</button>
+          </div>
+          <canvas id="qrCanvas"></canvas>
+          <div class="muted small">QR contains SKU + location + category.</div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <!-- ADD MODAL -->
+  <div id="addModal" class="modal hidden">
+    <div class="modalCard">
+      <div class="modalHead">
+        <div class="modalTitle">Add item</div>
+        <button class="iconBtn" id="closeAddBtn">✕</button>
+      </div>
+      <div class="formGrid">
+        <div class="field"><label>Name *</label><input id="aName" /></div>
+        <div class="field"><label>SKU *</label><input id="aSku" /></div>
+        <div class="field"><label>Category</label><input id="aCategory" placeholder="Automatic Sliding Door" list="catList2" /></div>
+        <datalist id="catList2"></datalist>
+        <div class="field"><label>Qty</label><input id="aQty" type="number" value="0" /></div>
+        <div class="field"><label>Low warn</label><input id="aLow" type="number" value="0" /></div>
+        <div class="field"><label>Aisle *</label><input id="aAisle" /></div>
+        <div class="field"><label>Placement *</label><input id="aPlacement" /></div>
+        <div class="field full"><label>Notes</label><textarea id="aNotes" rows="3"></textarea></div>
+        <div class="field full">
+          <label>Photo</label>
+          <input id="aPhoto" type="file" accept="image/*" />
+        </div>
+      </div>
+      <div class="modalBtns">
+        <button class="btn primary" id="addItemBtn">Add</button>
+        <button class="btn" id="cancelAddBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCANNER MODAL -->
+  <div id="scanModal" class="modal hidden">
+    <div class="modalCard">
+      <div class="modalHead">
+        <div class="modalTitle">Scan QR</div>
+        <button class="iconBtn" id="closeScanBtn">✕</button>
+      </div>
+      <div class="muted small" style="margin-bottom:10px;">
+        Allow camera access. When it scans, it opens the item.
+      </div>
+      <div id="qrReader" style="width:100%;"></div>
+      <div class="modalBtns">
+        <button class="btn" id="stopScanBtn">Stop</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS MODAL -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modalCard">
+      <div class="modalHead">
+        <div class="modalTitle">Settings</div>
+        <button class="iconBtn" id="closeSettingsBtn">✕</button>
+      </div>
+      <div class="formGrid">
+        <div class="field full">
+          <label>Change PIN</label>
+          <input id="newPin" type="password" inputmode="numeric" placeholder="New PIN (numbers)" />
+          <div class="muted small">This is a simple PIN gate for GitHub Pages (not bank-level secure).</div>
+        </div>
+      </div>
+      <div class="modalBtns">
+        <button class="btn primary" id="savePinBtn">Save PIN</button>
+        <button class="btn" id="closeSettingsBtn2">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
